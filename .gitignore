@@ -1,0 +1,4 @@
+.vscode
+sec-edgar-filings
+.env
+*.json
