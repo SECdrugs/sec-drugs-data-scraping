@@ -2,3 +2,4 @@
 sec-edgar-filings
 .env
 *.json
+__pycache__
