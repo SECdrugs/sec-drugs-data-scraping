@@ -18,7 +18,7 @@ pattern = re.compile(
 class FilingAnalyzer:
     def __init__(self, db_instance, openai_api_key, openai_model=MODEL):
         openai.api_key = openai_api_key
-        self._db_instance = db_instance
+        self._db = db_instance
         self._model = openai_model
 
     def _generate_prompt(self, text):
@@ -83,20 +83,17 @@ class FilingAnalyzer:
                 print(f"Match {i + 1} of {len(matches_with_context)}")
                 try:
                     openai_result = self._make_call_to_openai_api(match)
-                    if openai_result["discontinued"] and len(
+                    if openai_result["discontinued"] == True and len(
                         openai_result["drug_name(s)"]
                     ):
-                        self._db_instance.update_filing_analysis(
+                        self._db.update_filing_analysis(
                             filing_path,
-                            1,
                             1,
                             openai_result["drug_name(s)"],
                             openai_result["reason_for_discontinuation"],
                         )
                     else:
-                        self._db_instance.update_filing_analysis_no_findings(
-                            filing_path
-                        )
+                        self._db.update_filing_analysis_no_findings(filing_path)
                 except openai.error.APIError as e:
                     print(f"Error: {e}. \n")
 
@@ -105,10 +102,10 @@ class FilingAnalyzer:
     def find_potential_drug_names_in_unprocessed_filings(self):
         """Runs parsing code on all unprocessed filings"""
         unprocessed_files = (
-            self._db_instance.get_unprocessed_filings()
+            self._db.get_unprocessed_filings()
         )  # get only the unprocessed files
         for filing_path in unprocessed_files:
             self._find_discontinued_in_filing(filing_path)
-            self._db_instance.update_filing_status(
+            self._db.update_filing_status(
                 filing_path, "checked"
             )  # update the status after processing

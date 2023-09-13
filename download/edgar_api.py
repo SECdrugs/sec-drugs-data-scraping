@@ -14,7 +14,7 @@ class EdgarAPI:
         self, db_instance, user_agent, folder="sec-edgar-filings", start_year=START_YEAR
     ):
         self._edgar_client = EdgarClient(user_agent=user_agent)
-        self._db_instance = db_instance
+        self._db = db_instance
         self._folder = folder
         self._headers = {
             "User-Agent": user_agent,
@@ -55,14 +55,20 @@ class EdgarAPI:
                 continue
             url = self._get_submission_url(cik, accessions[i], docs[i])
             filename = f"{self._folder}/{cik}/{doc_type}/{docs[i]}"
-            if not self._db_instance.is_filing_downloaded(filename):
+            # Check if file exists already
+            if self._db.is_filing_downloaded(filename):
+                print(f"Found filing {i+1} of {len(accessions)} in database")
+            elif os.path.isfile(filename):
+                self._db.insert_filing_metadata(
+                    company, cik, doc_type, dates[i], filename
+                )
+                print(f"Found filing {i+1} of {len(accessions)} on disk")
+            else:
                 print(f"Downloading filing {i+1} of {len(accessions)}")
                 self._download_filing(url, filename)
                 # Insert metadata into the SQLite database
-                self._db_instance.insert_filing_metadata(
+                self._db.insert_filing_metadata(
                     company, cik, doc_type, dates[i], filename
                 )
-            else:
-                print(f"Found filing {i+1} of {len(accessions)} on disk")
             # Must remain under 10 requests per second per https://www.sec.gov/privacy#security
             time.sleep(0.2)

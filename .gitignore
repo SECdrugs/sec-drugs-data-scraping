@@ -3,3 +3,4 @@ sec-edgar-filings
 .env
 *.json
 __pycache__
+*.db
