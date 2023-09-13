@@ -20,7 +20,7 @@ class FilingMetadataDB:
                     filing_type TEXT,
                     report_date TEXT,
                     filename TEXT,
-                    analyzed BOOLEAN DEFAULT 0, 
+                    filing_analyzed BOOLEAN DEFAULT 0, 
                     discontinued BOOLEAN DEFAULT 0,
                     compound_analyzed BOOLEAN DEFAULT 0,
                     drug_names TEXT,
@@ -57,7 +57,7 @@ class FilingMetadataDB:
         """Retrieve a list of unprocessed filings."""
         with self.conn:
             cursor = self.conn.execute(
-                "SELECT filename FROM filings WHERE analyzed = 0"
+                "SELECT filename FROM filings WHERE filing_analyzed = 0"
             )
             return [res[0] for res in cursor.fetchall()]
 
@@ -76,8 +76,8 @@ class FilingMetadataDB:
         with self.conn:
             self.conn.execute(
                 """
-                UPDATE filings 
-                SET analyzed = 1, discontinued = ?, drug_names = ?, reason_for_discontinuation = ? 
+                UPDATE filings
+                SET filing_analyzed = 1, discontinued = ?, drug_names = ?, reason_for_discontinuation = ?
                 WHERE filename = ?
                 """,
                 (
@@ -93,8 +93,8 @@ class FilingMetadataDB:
         with self.conn:
             self.conn.execute(
                 """
-                UPDATE filings 
-                SET analyzed = 1, discontinued = 0
+                UPDATE filings
+                SET filing_analyzed = 1, discontinued = 0
                 WHERE filename = ?
                 """,
                 (filename,),

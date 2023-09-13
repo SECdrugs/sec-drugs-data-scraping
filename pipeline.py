@@ -25,6 +25,11 @@ class SECPipeline:
             self.edgar = None
 
     def download_filings(self):
+        if not self.edgar:
+            print(
+                "No SEC EDGAR client. Use --download or -D to enable EDGAR filing download."
+            )
+            exit(1)
         for company, cik in COMPANY_CIKS:
             self.edgar.download_submissions_for_company(company, cik)
 

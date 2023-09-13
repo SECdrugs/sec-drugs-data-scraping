@@ -59,10 +59,10 @@ class EdgarAPI:
             if self._db.is_filing_downloaded(filename):
                 print(f"Found filing {i+1} of {len(accessions)} in database")
             elif os.path.isfile(filename):
+                print(f"Found filing {i+1} of {len(accessions)} on disk")
                 self._db.insert_filing_metadata(
                     company, cik, doc_type, dates[i], filename
                 )
-                print(f"Found filing {i+1} of {len(accessions)} on disk")
             else:
                 print(f"Downloading filing {i+1} of {len(accessions)}")
                 self._download_filing(url, filename)
