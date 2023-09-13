@@ -73,6 +73,23 @@ class FilingAnalyzer:
             last_end = end
             yield text[start:end]
 
+    def _query_openai_and_save_response(self, match, filing_path):
+        try:
+            openai_result = self._make_call_to_openai_api(match)
+            if openai_result["discontinued"] == True and len(
+                openai_result["drug_name(s)"]
+            ):
+                self._db.update_filing_analysis(
+                    filing_path,
+                    1,
+                    openai_result["drug_name(s)"],
+                    openai_result["reason_for_discontinuation"],
+                )
+            else:
+                self._db.update_filing_analysis_no_findings(filing_path)
+        except openai.error.APIError as e:
+            print(f"Error: {e}. \n")
+
     def _find_discontinued_in_filing(self, filing_path):
         """Find potential discontinued drugs in a given filing"""
         with open(f"{filing_path}") as f:
@@ -81,22 +98,7 @@ class FilingAnalyzer:
             print(f"Found {len(matches_with_context)} matches in {filing_path}")
             for i, match in enumerate(matches_with_context):
                 print(f"Match {i + 1} of {len(matches_with_context)}")
-                try:
-                    openai_result = self._make_call_to_openai_api(match)
-                    if openai_result["discontinued"] == True and len(
-                        openai_result["drug_name(s)"]
-                    ):
-                        self._db.update_filing_analysis(
-                            filing_path,
-                            1,
-                            openai_result["drug_name(s)"],
-                            openai_result["reason_for_discontinuation"],
-                        )
-                    else:
-                        self._db.update_filing_analysis_no_findings(filing_path)
-                except openai.error.APIError as e:
-                    print(f"Error: {e}. \n")
-
+                self._query_openai_and_save_response(match, filing_path)
                 time.sleep(5)
 
     def find_potential_drug_names_in_unprocessed_filings(self):
@@ -106,6 +108,3 @@ class FilingAnalyzer:
         )  # get only the unprocessed files
         for filing_path in unprocessed_files:
             self._find_discontinued_in_filing(filing_path)
-            self._db.update_filing_status(
-                filing_path, "checked"
-            )  # update the status after processing

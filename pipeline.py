@@ -14,12 +14,15 @@ COMPANY_CIKS = [
 
 
 class SECPipeline:
-    def __init__(self, db_path, openai_api_key, edgar_user_agent):
+    def __init__(self, db_path, openai_api_key, edgar_user_agent, download=True):
         # Initialize DB
         self.filing_db = FilingMetadataDB(db_path)
         # Initialize clients
-        self.edgar = EdgarAPI(self.filing_db, edgar_user_agent)
         self.analyzer = FilingAnalyzer(self.filing_db, openai_api_key)
+        if download:
+            self.edgar = EdgarAPI(self.filing_db, edgar_user_agent)
+        else:
+            self.edgar = None
 
     def download_filings(self):
         for company, cik in COMPANY_CIKS:
@@ -29,5 +32,6 @@ class SECPipeline:
         self.analyzer.find_potential_drug_names_in_unprocessed_filings()
 
     def run_pipeline(self):
-        self.download_filings()
+        if self.edgar:
+            self.download_filings()
         self.find_potential_discontinuations()
