@@ -32,7 +32,7 @@ class EdgarAPI:
 
     def _download_filing(self, url, filename):
         """Save the individual filing located at `url` as `filename`"""
-        response = requests.get(url, self._headers)
+        response = requests.get(url, headers=self._headers)
         # Save response to file
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "wb") as f:
