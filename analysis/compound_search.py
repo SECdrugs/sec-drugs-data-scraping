@@ -69,17 +69,19 @@ class CompoundSearch:
         # TODO remember to cite:
         # https://github.com/chembl/chembl_webresource_client#citing
         molecule = new_client.molecule
-        mols = molecule.filter(molecule_synonyms__molecule_synonym__iexact=drug_name)
+        mols = molecule.filter(
+            molecule_synonyms__molecule_synonym__iexact=drug_name)
         if not len(mols):
             return None
         mol = mols[0]
         chembl_id = mol["molecule_chembl_id"]
         max_phase = mol["max_phase"]
-        names = list(map(lambda s: s["molecule_synonym"], mol["molecule_synonyms"]))
+        names = list(
+            map(lambda s: s["molecule_synonym"], mol["molecule_synonyms"]))
         return (chembl_id, max_phase, names)
 
     def _get_clinical_trials_data(self, drug_name):
-        res = self.ct.get_full_studies(search_expr=drug_name, max_studies=50)
+        res = self._ct.get_full_studies(search_expr=drug_name, max_studies=50)
         companies_phases = {}
         if not res["FullStudiesResponse"]["NStudiesReturned"]:
             return None
@@ -124,11 +126,12 @@ class CompoundSearch:
         pp.pprint(api_response)
         return None
 
-    def _analyze_compound(self, potential_drug_name):
-        clin_trials_data = self._get_clinical_trials_data(potential_drug_name)
+    def _analyze_compound(self, potential_compound):
+        clin_trials_data = self._get_clinical_trials_data(
+            potential_compound)
         print("\nClinical Trials Data:")
         pp.pprint(clin_trials_data)
-        chembl_data = self._get_chembl_data(potential_drug_name)
+        chembl_data = self._get_chembl_data(potential_compound)
         if not chembl_data:
             return
         (chembl_id, max_phase, names) = chembl_data
@@ -140,7 +143,6 @@ class CompoundSearch:
 
     def analyze_potential_compounds(self):
         compounds = self._db.get_unanalyzed_compound_names()
-        for filename, drug_name_list in compounds:
-            for potential_drug_name in drug_name_list:
-                self._analyze_compound(potential_drug_name)
-            self._db.set_compound_analyzed(filename)
+        for id, potential_compound in compounds:
+            self._analyze_compound(potential_compound)
+            self._db.set_compound_analyzed(id)

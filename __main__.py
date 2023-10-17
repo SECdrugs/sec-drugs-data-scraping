@@ -19,5 +19,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     download_filings = args.download_filings == True
-    pipeline = SECPipeline(DB_PATH, OPENAI_API_KEY, EDGAR_USER_AGENT, download_filings)
+    pipeline = SECPipeline(DB_PATH, OPENAI_API_KEY,
+                           EDGAR_USER_AGENT, download_filings)
     pipeline.run_pipeline()

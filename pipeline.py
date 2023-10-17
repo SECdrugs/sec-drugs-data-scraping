@@ -1,5 +1,6 @@
 from data.filing_db import FilingMetadataDB
 from analysis.sec_parsing import FilingAnalyzer
+from analysis.compound_search import CompoundSearch
 from download.edgar_api import EdgarAPI
 
 COMPANY_CIKS = [
@@ -16,11 +17,12 @@ COMPANY_CIKS = [
 class SECPipeline:
     def __init__(self, db_path, openai_api_key, edgar_user_agent, download=True):
         # Initialize DB
-        self.filing_db = FilingMetadataDB(db_path)
+        self._db = FilingMetadataDB(db_path)
         # Initialize clients
-        self.analyzer = FilingAnalyzer(self.filing_db, openai_api_key)
+        self.analyzer = FilingAnalyzer(self._db, openai_api_key)
+        self.compound_search = CompoundSearch(self._db)
         if download:
-            self.edgar = EdgarAPI(self.filing_db, edgar_user_agent)
+            self.edgar = EdgarAPI(self._db, edgar_user_agent)
         else:
             self.edgar = None
 
@@ -35,6 +37,7 @@ class SECPipeline:
 
     def find_potential_discontinuations(self):
         self.analyzer.find_potential_drug_names_in_unprocessed_filings()
+        self.compound_search.analyze_potential_compounds()
 
     def run_pipeline(self):
         if self.edgar:

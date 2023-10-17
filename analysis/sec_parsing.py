@@ -47,7 +47,8 @@ class FilingAnalyzer:
         """
         response = openai.ChatCompletion.create(
             model=self._model,
-            messages=[{"role": "system", "content": self._generate_prompt(match)}],
+            messages=[
+                {"role": "system", "content": self._generate_prompt(match)}],
             temperature=0.6,
         )
         openai_obj = list(response.choices)[0]
@@ -73,38 +74,35 @@ class FilingAnalyzer:
             last_end = end
             yield text[start:end]
 
-    def _query_openai_and_save_response(self, match, filing_path):
+    def _query_openai_and_save_response(self, match, filing_id):
         try:
             openai_result = self._make_call_to_openai_api(match)
-            if openai_result["discontinued"] == True and len(
-                openai_result["drug_name(s)"]
-            ):
-                self._db.update_filing_analysis(
-                    filing_path,
-                    1,
-                    openai_result["drug_name(s)"],
-                    openai_result["reason_for_discontinuation"],
-                )
-            else:
-                self._db.update_filing_analysis_no_findings(filing_path)
+            if openai_result["discontinued"] == True:
+                for drug_name in openai_result["drug_name(s)"]:
+                    if not self._db.does_compound_exist(drug_name):
+                        self._db.insert_compound(
+                            drug_name, filing_id, openai_result['reason_for_discontinuation'])
         except openai.error.APIError as e:
             print(f"Error: {e}. \n")
 
-    def _find_discontinued_in_filing(self, filing_path):
+    def _find_discontinued_in_filing(self, filing_id, filing_path):
         """Find potential discontinued drugs in a given filing"""
         with open(f"{filing_path}") as f:
             filing = f.read()
-            matches_with_context = list(self._get_keyword_matches_with_context(filing))
-            print(f"Found {len(matches_with_context)} matches in {filing_path}")
+            matches_with_context = list(
+                self._get_keyword_matches_with_context(filing))
+            print(
+                f"Found {len(matches_with_context)} matches in {filing_path}")
             for i, match in enumerate(matches_with_context):
                 print(f"Match {i + 1} of {len(matches_with_context)}")
-                self._query_openai_and_save_response(match, filing_path)
+                self._query_openai_and_save_response(match, filing_id)
                 time.sleep(5)
+            self._db.set_filing_analyzed(filing_id)
 
     def find_potential_drug_names_in_unprocessed_filings(self):
         """Runs parsing code on all unprocessed filings"""
         unprocessed_files = (
             self._db.get_unprocessed_filings()
         )  # get only the unprocessed files
-        for filing_path in unprocessed_files:
-            self._find_discontinued_in_filing(filing_path)
+        for (id, filing_path) in unprocessed_files:
+            self._find_discontinued_in_filing(id, filing_path)
